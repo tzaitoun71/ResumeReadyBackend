@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from services.pdf_parser import extract_text_from_pdf
+from services.resume_feedback import generate_resume_feedback
 import os
 
 def setup_routes(app):
@@ -30,3 +31,24 @@ def setup_routes(app):
         
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+    
+    @app.route('/resume-feedback', methods=['POST'])
+    def resume_feedback():
+        try:
+            data = request.json
+
+            # Extract fields from request
+            user_resume = data.get('userResume')
+            job_descrption = data.get('jobDescription')
+
+            if not user_resume or not job_descrption:
+                return jsonify({"error": "Both userResume and jobDescription are required."}), 400
+            
+            # Generate resume feedback
+            feedback = generate_resume_feedback(user_resume, job_descrption)
+
+            return jsonify({"message": "Feedback generated successfully", "feedback": feedback}), 200
+        
+        except Exception as e:
+            print(f"Error in /resume-feedback: {e}")
+            return jsonify({"error": "An error occurred while generating feedback."}), 500
