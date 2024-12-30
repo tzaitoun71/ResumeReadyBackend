@@ -1,5 +1,6 @@
 from flask import request, jsonify
 from services.cover_letter import generate_cover_letter
+from services.interview_questions import generate_interview_questions
 from services.pdf_parser import extract_text_from_pdf
 from services.resume_feedback import generate_resume_feedback
 import os
@@ -72,3 +73,26 @@ def setup_routes(app):
         except Exception as e:
             print(f"Error in /generate-cover-letter: {e}")
             return jsonify({"error": "An error occured while generating a cover letter"})
+    
+    @app.route('/generate-interview-questions', methods=['POST'])
+    def interview_questions():
+        try:
+            data = request.json
+            user_resume = data.get('userResume')
+            job_description = data.get('jobDescription')
+            question_type = data.get('questionType', 'Technical')
+            num_questions = data.get('numQuestions', 3)
+
+            if not user_resume or not job_description:
+                return jsonify({"error": "Both userResume and jobDescription are required."}), 400
+            
+            questions = generate_interview_questions(user_resume, job_description, question_type, num_questions)
+
+            return jsonify({
+                "message": "Interview questions generated successfully",
+                "interviewQuestions": questions
+            }), 200
+        
+        except Exception as e:
+            print(f"Error in /generate-interview-questions: {e}")
+            return jsonify({"error": "An error occurred while generating interview questions."}), 500
