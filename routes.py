@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from services.cover_letter import generate_cover_letter
 from services.pdf_parser import extract_text_from_pdf
 from services.resume_feedback import generate_resume_feedback
 import os
@@ -52,3 +53,22 @@ def setup_routes(app):
         except Exception as e:
             print(f"Error in /resume-feedback: {e}")
             return jsonify({"error": "An error occurred while generating feedback."}), 500
+        
+    @app.route('/generate-cover-letter', methods=["POST"])
+    def cover_letter():
+        try:
+            data = request.json
+            user_resume = data.get('userResume')
+            job_description = data.get('jobDescription')
+
+            if not user_resume or not job_description:
+                return jsonify({"error": "Both userResume and jobDescription are required."}), 400
+            
+            # Generate cover letter
+            cover_letter = generate_cover_letter(user_resume, job_description)
+
+            return jsonify({"message": "Cover Letter generated successfully", "cover_letter": cover_letter}), 200
+        
+        except Exception as e:
+            print(f"Error in /generate-cover-letter: {e}")
+            return jsonify({"error": "An error occured while generating a cover letter"})
