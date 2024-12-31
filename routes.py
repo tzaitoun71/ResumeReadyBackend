@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from services.auth import register_user
 from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
 from services.pdf_parser import extract_text_from_pdf
@@ -96,3 +97,20 @@ def setup_routes(app):
         except Exception as e:
             print(f"Error in /generate-interview-questions: {e}")
             return jsonify({"error": "An error occurred while generating interview questions."}), 500
+    
+    @app.route('/register', methods=['POST'])
+    def register():
+        try:
+            data = request.json
+            first_name = data.get('firstName')
+            last_name = data.get('lastName')
+            email = data.get('email')
+            password = data.get('password')
+
+            if not all([first_name, last_name, email, password]):
+                return jsonify({"error": "All fields are required"}), 400
+            
+            result = register_user(first_name, last_name, email, password)
+            return jsonify(result), 201 if 'message' in result else 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500

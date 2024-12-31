@@ -45,7 +45,6 @@ def generate_interview_questions(user_resume: str, job_description: str, questio
         )
 
         response_content = completion.choices[0].message.content.strip()
-        print("Raw OpenAI Response:", response_content)  # Debug line
 
         # Remove markdown code block formatting
         clean_response = re.sub(r'^```json\s*|\s*```$', '', response_content).strip()
