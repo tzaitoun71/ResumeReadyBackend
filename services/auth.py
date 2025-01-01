@@ -1,3 +1,5 @@
+from datetime import timedelta
+from flask_jwt_extended import create_access_token
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
@@ -28,3 +30,20 @@ def register_user(first_name: str, last_name: str, email: str, password: str):
 
     user_collections.insert_one(user)
     return {"message": "User registered successfully."}
+
+def login_user(email: str, password: str):
+    user = user_collections.find_one({"email": email})
+
+    if not user:
+        return {"error": "User not found."}
+    
+    if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        return {"error": "Invalid password."}
+
+    # Generate a JWT Token
+    access_token = create_access_token(identity=email, expires_delta=timedelta(hours=1))
+
+    return {
+        "message": "Login successful.",
+        "access_token": access_token
+    }
