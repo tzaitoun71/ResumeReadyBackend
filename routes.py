@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from services.auth import register_user
+from services.auth import login_user, register_user
 from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
 from services.pdf_parser import extract_text_from_pdf
@@ -112,5 +112,20 @@ def setup_routes(app):
             
             result = register_user(first_name, last_name, email, password)
             return jsonify(result), 201 if 'message' in result else 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/login', methods=["POST"])
+    def login():
+        try:
+            data = request.json
+            email = data.get('email')
+            password = data.get('password')
+
+            if not all([email, password]):
+                return jsonify({"error": "Email or password is missing."}), 400
+            
+            result = login_user(email, password)
+            return jsonify(result), 200 if 'access_token' in result else 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
