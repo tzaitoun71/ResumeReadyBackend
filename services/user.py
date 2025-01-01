@@ -1,7 +1,4 @@
-from pymongo.mongo_client import MongoClient
-from flask_jwt_extended import get_jwt_identity
 from datetime import datetime
-import os
 from services.auth import user_collections
 
 def update_user_resume(email: str, resume_text: str) -> bool:
