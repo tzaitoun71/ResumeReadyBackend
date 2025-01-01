@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from services.auth import login_user, register_user
 from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
@@ -6,11 +7,14 @@ from services.pdf_parser import extract_text_from_pdf
 from services.resume_feedback import generate_resume_feedback
 import os
 
+from services.user import update_user_resume
+
 def setup_routes(app):
     UPLOAD_FOLDER = 'uploads'
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     @app.route('/upload-pdf', methods=['POST'])
+    @jwt_required()
     def upload_pdf():
         # Upload a PDF file, extract its text, and return it.
         file = request.files.get('file')
@@ -30,7 +34,19 @@ def setup_routes(app):
             # Clean up the uploaded file
             os.remove(file_path)
 
-            return jsonify({"message": "Text extracted successfully", "text": extracted_text})
+            # Get user's identity
+            user_email = get_jwt_identity()
+
+            # Update user's resume in MongoDB
+            update_result = update_user_resume(user_email, extracted_text)
+
+            if not update_result:
+                return jsonify({"error": "Failed to update user resume"}), 500
+
+            return jsonify({
+                "message": "Resume parsed and saved successfully.",
+                "resumeText": extracted_text
+            }), 200
         
         except Exception as e:
             return jsonify({"error": str(e)}), 500
