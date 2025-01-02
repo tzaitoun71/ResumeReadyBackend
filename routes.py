@@ -130,3 +130,28 @@ def setup_routes(app):
             return jsonify(result), 201 if 'message' in result else 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+    
+    @app.route('/login', methods=["POST"])
+    def login():
+        try:
+            data = request.json
+            email = data.get('email')
+            password = data.get('password')
+            
+            if not all([email, password]):
+                return jsonify({"error": "Email and password are required."}), 400
+            
+            result = login_user(email, password)
+            if "access_token" in result:
+                return jsonify({
+                    "message": "Login successful",
+                    "access_token": result["access_token"],
+                    "id_token": result["id_token"],
+                    "user": result["user"]
+                }), 200
+            else:
+                return jsonify(result), 400
+        
+        except Exception as e:
+            print(f"Error in /login: {e}")
+            return jsonify({"error": "An error occurred during login."}), 500

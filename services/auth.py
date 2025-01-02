@@ -48,3 +48,36 @@ def register_user(first_name: str, last_name: str, email: str, password: str):
     except Exception as e:
         print(f"Error registering user: {e}")
         return {"error": str(e)}
+
+def login_user(email: str, password: str):
+    try:
+        url = f"https://{AUTH0_DOMAIN}/oauth/token"
+        payload = {
+            "grant_type": "password",
+            "username": email,
+            "password": password,
+            "audience": AUTH0_AUDIENCE,  # Ensure this matches your API Identifier
+            "client_id": AUTH0_CLIENT_ID,
+            "client_secret": AUTH0_CLIENT_SECRET,
+            "scope": "openid profile email",
+            "connection": AUTH0_CONNECTION
+        }
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            user_info = user_collections.find_one({"email": email})
+            return {
+                "access_token": response.json()["access_token"],
+                "id_token": response.json()["id_token"],
+                "user": {
+                    "email": user_info.get("email"),
+                    "firstName": user_info.get("firstName"),
+                    "lastName": user_info.get("lastName")
+                }
+            }
+        else:
+            return {"error": response.json().get('error_description', 'Login failed')}
+    
+    except Exception as e:
+        print(f"Error logging in user: {e}")
+        return {"error": str(e)}
