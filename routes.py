@@ -130,18 +130,3 @@ def setup_routes(app):
             return jsonify(result), 201 if 'message' in result else 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-    
-    @app.route('/login', methods=["POST"])
-    def login():
-        try:
-            data = request.json
-            email = data.get('email')
-            password = data.get('password')
-
-            if not all([email, password]):
-                return jsonify({"error": "Email or password is missing."}), 400
-            
-            result = login_user(email, password)
-            return jsonify(result), 200 if 'access_token' in result else 400
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500

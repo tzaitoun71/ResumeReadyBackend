@@ -1,49 +1,50 @@
-from datetime import timedelta
-from flask_jwt_extended import create_access_token
+import os
+import requests
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from datetime import datetime
 from dotenv import load_dotenv
-import os
-import bcrypt
 
 load_dotenv()
 
-# Connect to MongoDB Atlas
 uri = os.getenv("MONGODB_URI")
 client = MongoClient(uri, server_api=ServerApi('1'))
-
-# Access the database and collection
 db = client['resume-ready']
 user_collections = db['new-users']
 
+# Auth0 Configuration
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
+AUTH0_CONNECTION = "Username-Password-Authentication"
+AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
+
 def register_user(first_name: str, last_name: str, email: str, password: str):
-    if user_collections.find_one({"email": email}):
-        return {"error": "User already exists with this email."}
-    
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    user = {
-        "firstName": first_name,
-        "lastName": last_name,
-        "email": email,
-        "password": hashed_password.decode('utf-8')
-    }
-
-    user_collections.insert_one(user)
-    return {"message": "User registered successfully."}
-
-def login_user(email: str, password: str):
-    user = user_collections.find_one({"email": email})
-
-    if not user:
-        return {"error": "User not found."}
-    
-    if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        return {"error": "Invalid password."}
-
-    # Generate a JWT Token
-    access_token = create_access_token(identity=email, expires_delta=timedelta(hours=1))
-
-    return {
-        "message": "Login successful.",
-        "access_token": access_token
-    }
+    try:
+        url = f"https://{AUTH0_DOMAIN}/dbconnections/signup"
+        payload = {
+            "client_id": AUTH0_CLIENT_ID,
+            "email": email,
+            "password": password,
+            "connection": AUTH0_CONNECTION,
+            "user_metadata": {
+                "firstName": first_name,
+                "lastName": last_name
+            }
+        }
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            # Save user to MongoDB
+            user_data = {
+                "email": email,
+                "firstName": first_name,
+                "lastName": last_name,
+                "createdAt": datetime.utcnow()
+            }
+            user_collections.insert_one(user_data)
+            return {"message": "User registered successfully."}
+        else:
+            return {"error": response.json().get('message', 'Registration failed')}
+    except Exception as e:
+        print(f"Error registering user: {e}")
+        return {"error": str(e)}
