@@ -22,11 +22,7 @@ AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
 AUTH0_CALLBACK_URL = os.getenv('AUTH0_CALLBACK_URL')
 
 
-### ✅ Fetch Management API Token ###
 def get_management_token():
-    """
-    Fetch Auth0 Management API Token
-    """
     try:
         url = f"https://{AUTH0_DOMAIN}/oauth/token"
         payload = {
@@ -38,24 +34,18 @@ def get_management_token():
         headers = {"Content-Type": "application/json"}
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
-        token = response.json().get("access_token")
-        print(f"✅ Auth0 Management Token Acquired: {token[:10]}...")  # Debug token (partial)
-        return token
+        return response.json().get("access_token")
     except Exception as e:
-        print(f"❌ Error fetching management token: {e}")
+        print(f"Error fetching management token: {e}")
         return None
 
 
-
-### ✅ Register User ###
 def register_user(email: str, password: str, first_name: str, last_name: str):
     try:
-        # Fetch Auth0 Management API Token
         token = get_management_token()
         if not token:
             return {"error": "Failed to get management token"}
 
-        # Create User in Auth0
         url = f"https://{AUTH0_DOMAIN}/api/v2/users"
         headers = {
             "Authorization": f"Bearer {token}",
@@ -81,7 +71,6 @@ def register_user(email: str, password: str, first_name: str, last_name: str):
         if not auth0_user_id:
             return {"error": "Failed to retrieve user_id from Auth0"}
 
-        # Save User in MongoDB
         user_data = {
             "_id": auth0_user_id,
             "email": email,
@@ -102,7 +91,6 @@ def register_user(email: str, password: str, first_name: str, last_name: str):
         return {"error": str(e)}
 
 
-### ✅ Login User ###
 def login_user(email: str, password: str):
     try:
         url = f"https://{AUTH0_DOMAIN}/oauth/token"
