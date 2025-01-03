@@ -1,5 +1,5 @@
 import os
-from flask import request, jsonify
+from flask import redirect, request, jsonify, session, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.auth import get_management_token, register_user, login_user
 from services.user import update_user_resume
@@ -7,54 +7,97 @@ from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
 from services.pdf_parser import extract_text_from_pdf
 from services.resume_feedback import generate_resume_feedback
+import requests
+
+# Environment Variables
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
+AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
+AUTH0_CALLBACK_URL = os.getenv("AUTH0_CALLBACK_URL")
 
 
-def setup_routes(app, jwt):
+def setup_routes(app):
     UPLOAD_FOLDER = 'uploads'
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-    @app.route('/register', methods=['POST'])
-    def register():
-        try:
-            data = request.json
-            email = data.get('email')
-            password = data.get('password')
-            first_name = data.get('firstName')
-            last_name = data.get('lastName')
-
-            if not all([email, password, first_name, last_name]):
-                return jsonify({"error": "All fields are required"}), 400
-
-            token = get_management_token()
-            if not token:
-                return jsonify({"error": "Failed to retrieve Auth0 Management Token"}), 500
-
-            result = register_user(email, password, first_name, last_name)
-            if 'error' in result:
-                return jsonify(result), 400
-
-            return jsonify(result), 201
-
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    @app.route('/login', methods=['POST'])
+    # Login Route
+    @app.route('/login')
     def login():
-        try:
-            data = request.json
-            email = data.get('email')
-            password = data.get('password')
+        return redirect(
+            f'https://{AUTH0_DOMAIN}/authorize'
+            f'?response_type=code'
+            f'&client_id={AUTH0_CLIENT_ID}'
+            f'&redirect_uri={AUTH0_CALLBACK_URL}'
+            f'&scope=openid profile email'
+            f'&audience={AUTH0_AUDIENCE}'
+        )
 
-            if not all([email, password]):
-                return jsonify({"error": "Email and password are required"}), 400
+    # Callback Route
+    @app.route('/callback')
+    def callback():
+        code = request.args.get('code')
+        if not code:
+            return "Authorization code not found", 400
 
-            result = login_user(email, password)
-            return jsonify(result), 200 if 'access_token' in result else 400
+        token_url = f"https://{AUTH0_DOMAIN}/oauth/token"
+        payload = {
+            "grant_type": "authorization_code",
+            "client_id": AUTH0_CLIENT_ID,
+            "client_secret": AUTH0_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": AUTH0_CALLBACK_URL
+        }
+        headers = {"Content-Type": "application/json"}
 
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        response = requests.post(token_url, json=payload, headers=headers)
+        if response.status_code != 200:
+            return jsonify({"error": "Failed to fetch tokens", "details": response.json()}), 400
 
+        tokens = response.json()
+        session['access_token'] = tokens.get('access_token')
+        session['id_token'] = tokens.get('id_token')
+
+        userinfo_url = f"https://{AUTH0_DOMAIN}/userinfo"
+        headers = {"Authorization": f"Bearer {tokens.get('access_token')}"}
+        userinfo_response = requests.get(userinfo_url, headers=headers)
+
+        if userinfo_response.status_code != 200:
+            return jsonify({"error": "Failed to fetch user info"}), 400
+
+        session['user'] = userinfo_response.json()
+        return redirect(url_for('dashboard'))
+
+    # Logout Route
+    @app.route('/logout')
+    def logout():
+        session.clear() 
+        return redirect(
+            f'https://{AUTH0_DOMAIN}/v2/logout'
+            f'?client_id={AUTH0_CLIENT_ID}'
+            f'&returnTo={os.getenv("AUTH0_CALLBACK_URL")}'
+        )
+
+    # Protected Route
+    @app.route('/protected', methods=['GET'])
+    @jwt_required()
+    def protected():
+        current_user = get_jwt_identity()
+        return jsonify(logged_in_as=current_user), 200
+
+    # Dashboard Route
+    @app.route('/dashboard')
+    def dashboard():
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
+        return jsonify({
+            "message": "Welcome to your dashboard",
+            "user": user
+        })
+
+    # Upload PDF Route
     @app.route('/upload-pdf', methods=['POST'])
     @jwt_required()
     def upload_pdf():
@@ -80,11 +123,15 @@ def setup_routes(app, jwt):
             if not update_result:
                 return jsonify({"error": "Failed to update user resume"}), 500
 
-            return jsonify({"message": "Resume parsed and saved successfully.", "resumeText": extracted_text}), 200
+            return jsonify({
+                "message": "Resume parsed and saved successfully.",
+                "resumeText": extracted_text
+            }), 200
 
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # Resume Feedback Route
     @app.route('/resume-feedback', methods=['POST'])
     def resume_feedback():
         try:
@@ -101,6 +148,7 @@ def setup_routes(app, jwt):
         except Exception as e:
             return jsonify({"error": "An error occurred while generating feedback."}), 500
 
+    # Cover Letter Route
     @app.route('/generate-cover-letter', methods=["POST"])
     def cover_letter():
         try:
@@ -117,6 +165,7 @@ def setup_routes(app, jwt):
         except Exception as e:
             return jsonify({"error": "An error occurred while generating a cover letter"}), 500
 
+    # Interview Questions Route
     @app.route('/generate-interview-questions', methods=['POST'])
     def interview_questions():
         try:

@@ -1,10 +1,10 @@
-import os
-from flask import Flask, session, redirect, url_for
+from flask import Flask, jsonify, redirect, request, session, url_for
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
+import os
 from jwt import PyJWKClient
 
-# Load environment variables
+# Load Environment Variables
 load_dotenv()
 
 app = Flask(__name__)
@@ -25,19 +25,19 @@ try:
         os.getenv('AUTH0_SAMPLE_TOKEN')
     ).key
     app.config['JWT_PUBLIC_KEY'] = signing_key
-    print("Successfully configured JWT_PUBLIC_KEY from Auth0 JWKS.")
+    print("JWT Public Key Configured Successfully")
 except Exception as e:
-    print(f"Failed to configure JWT_PUBLIC_KEY: {e}")
+    print(f"Failed to configure JWT: {e}")
     exit(1)
 
 jwt = JWTManager(app)
 
 from routes import setup_routes
-setup_routes(app, jwt)
+setup_routes(app)
 
 @app.route('/')
 def home():
-    return "Flask App is Running!"
+    return "Welcome to the Auth0-Integrated Flask App!"
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
