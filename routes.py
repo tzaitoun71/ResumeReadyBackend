@@ -56,8 +56,12 @@ def setup_routes(app):
                 "first_name": user_info.get("given_name", ""),
                 "last_name": user_info.get("family_name", "")
             }
+            session['tokens'] = {
+                "access_token": tokens.get("access_token"),
+                "id_token": tokens.get("id_token")
+            }
 
-            return redirect('/dashboard')
+            return jsonify({"message": "User logged in successfully"}), 200
 
         except Exception as e:
             print(f"Error in /callback: {e}")
@@ -79,16 +83,20 @@ def setup_routes(app):
     def protected():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
+    
+    # Temporary endpoint for development only
+    @app.route('/tokens', methods=['GET'])
+    def get_tokens():
+        if 'user' not in session:
+            return jsonify({"error": "User not logged in"}), 401
 
-    # Dashboard Route
-    @app.route('/dashboard')
-    def dashboard():
-        user = session.get('user')
-        if not user:
-            return redirect(url_for('login'))
+        tokens = session.get('tokens')
+        if not tokens:
+            return jsonify({"error": "No tokens found in session"}), 400
+
         return jsonify({
-            "message": "Welcome to your dashboard",
-            "user": user
+            "access_token": tokens.get("access_token"),
+            "id_token": tokens.get("id_token")
         })
 
     # Upload PDF Route

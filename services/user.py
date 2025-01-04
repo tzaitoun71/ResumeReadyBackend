@@ -1,10 +1,10 @@
 from datetime import datetime
 from services.auth import user_collections
 
-def update_user_resume(email: str, resume_text: str) -> bool:
+def update_user_resume(user_id: str, resume_text: str) -> bool:
     try:
         result = user_collections.update_one(
-            {"email": email},
+            {"_id": user_id},
             {
                 "$set": {
                     "resume": resume_text,
@@ -15,7 +15,7 @@ def update_user_resume(email: str, resume_text: str) -> bool:
 
         # Check if a document was found and updated
         if result.matched_count == 0:
-            print("No document matched the provided email.")
+            print("No document matched the provided user ID.")
             return False
 
         if result.modified_count == 0:
