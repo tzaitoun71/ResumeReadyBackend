@@ -1,6 +1,7 @@
 import os
 from flask import redirect, request, jsonify, session, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from services.application_service import process_application
 from services.auth import exchange_code_for_tokens, fetch_user_info, save_user_to_db
 from services.user import update_user_resume
 from services.cover_letter import generate_cover_letter
@@ -180,3 +181,36 @@ def setup_routes(app):
 
         except Exception as e:
             return jsonify({"error": "An error occurred while generating interview questions."}), 500
+
+    # Process Application Route
+    @app.route('/process-application', methods=['POST'])
+    def process_application_endpoint():
+        try:
+            # Parse request JSON
+            data = request.get_json()
+            
+            if not data:
+                return jsonify({"error": "Missing JSON body"}), 400
+            
+            user_resume = data.get('userResume')
+            job_description = data.get('jobDescription')
+            question_type = data.get('questionType', 'Technical')
+            num_questions = data.get('numQuestions', 3)
+            
+            # Validate required fields
+            if not user_resume or not job_description:
+                return jsonify({"error": "Both 'userResume' and 'jobDescription' fields are required."}), 400
+            
+            # Call the process_application function
+            application_result = process_application(
+                user_resume=user_resume,
+                job_description=job_description,
+                question_type=question_type,
+                num_questions=num_questions
+            )
+            
+            return jsonify(application_result), 200
+        
+        except Exception as e:
+            print(f"Error in /process-application: {e}")
+            return jsonify({"error": str(e)}), 500
