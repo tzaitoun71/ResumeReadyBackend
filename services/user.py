@@ -1,5 +1,5 @@
 from datetime import datetime
-from services.auth import user_collections
+from config.database import user_collections
 
 def update_user_resume(user_id: str, resume_text: str) -> bool:
     try:

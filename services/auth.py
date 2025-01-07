@@ -1,20 +1,13 @@
 import os
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
 from datetime import datetime
 import requests
+from config.database import user_collections
 
 # Load Environment Variables
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
 AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
 AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
 AUTH0_CALLBACK_URL = os.getenv("AUTH0_CALLBACK_URL")
-
-# MongoDB Setup
-uri = os.getenv("MONGODB_URI")
-client = MongoClient(uri, server_api=ServerApi('1'))
-db = client['resume-ready']
-user_collections = db['new-users']
 
 def exchange_code_for_tokens(code: str):
     try:
