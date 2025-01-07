@@ -1,5 +1,5 @@
 import os
-from flask import Flask, session
+from flask import Flask
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from jwt import PyJWKClient
@@ -9,6 +9,8 @@ load_dotenv()
 
 # Initialize Flask App
 app = Flask(__name__)
+
+# App Configuration
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # Auth0 Configuration
@@ -22,7 +24,8 @@ app.config['JWT_ALGORITHM'] = 'RS256'
 app.config['JWT_DECODE_AUDIENCE'] = AUTH0_AUDIENCE
 app.config['JWT_IDENTITY_CLAIM'] = 'sub'
 
-# Fetch Public Key for JWT Validation
+
+# JWT Configuration
 try:
     jwks_client = PyJWKClient(JWKS_URL)
     signing_key = jwks_client.get_signing_key_from_jwt(
@@ -37,10 +40,15 @@ except Exception as e:
 # Initialize JWT Manager
 jwt = JWTManager(app)
 
-# Import Routes
-from routes import setup_routes
-setup_routes(app)
+# Register Blueprints
+from routes.auth_routes import auth_bp
+from routes.user_routes import user_bp
+from routes.application_routes import application_bp
 
-# Run Server
+app.register_blueprint(auth_bp, url_prefix='/auth')
+app.register_blueprint(user_bp, url_prefix='/user')
+app.register_blueprint(application_bp, url_prefix='/application')
+
+# Start Flask Server
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
