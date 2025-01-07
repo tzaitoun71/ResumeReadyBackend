@@ -2,30 +2,24 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from uuid import uuid4
 from datetime import datetime
 from typing import Dict
-
-# Import the three functions
 from services.cover_letter import generate_cover_letter
 from services.resume_feedback import generate_resume_feedback
 from services.interview_questions import generate_interview_questions
 
 
 def process_application(user_resume: str, job_description: str, question_type: str = "Technical", num_questions: int = 3) -> Dict:
-    """
-    Run resume feedback, cover letter, and interview question generation simultaneously.
-    Store the results in an 'applications' array.
-    """
     try:
         # Define tasks for concurrent execution
         tasks = {
-            "resumeFeedback": lambda: generate_resume_feedback(user_resume, job_description),
-            "coverLetter": lambda: generate_cover_letter(user_resume, job_description),
-            "interviewQuestions": lambda: generate_interview_questions(user_resume, job_description, question_type, num_questions)
+            "resumeFeedback": (generate_resume_feedback, (user_resume, job_description)),
+            "coverLetter": (generate_cover_letter, (user_resume, job_description)),
+            "interviewQuestions": (generate_interview_questions, (user_resume, job_description, question_type, num_questions))
         }
 
         results = {}
         with ThreadPoolExecutor(max_workers=3) as executor:
             # Submit tasks to the thread pool
-            futures = {executor.submit(task): key for key, task in tasks.items()}
+            futures = {executor.submit(func, *args): key for key, (func, args) in tasks.items()}
 
             for future in as_completed(futures):
                 key = futures[future]

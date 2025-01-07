@@ -3,6 +3,7 @@ from flask import redirect, request, jsonify, session, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.application_service import process_application
 from services.auth import exchange_code_for_tokens, fetch_user_info, save_user_to_db
+from services.job_summary import summarize_job_description
 from services.user import update_user_resume
 from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
@@ -213,4 +214,23 @@ def setup_routes(app):
         
         except Exception as e:
             print(f"Error in /process-application: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/summarize-job', methods=['POST'])
+    def summarize_job():
+        """
+        API Endpoint to summarize a job description into one concise paragraph.
+        """
+        try:
+            data = request.get_json()
+            job_description = data.get('jobDescription')
+
+            if not job_description:
+                return jsonify({"error": "Job description is required."}), 400
+
+            summary = summarize_job_description(job_description)
+            return jsonify({"message": "Job description summarized successfully", "summary": summary}), 200
+
+        except Exception as e:
+            print(f"Error in /summarize-job: {e}")
             return jsonify({"error": str(e)}), 500
