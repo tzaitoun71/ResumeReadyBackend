@@ -21,6 +21,14 @@ def generate_resume_feedback(user_resume: str, job_description: str) -> dict:
         - Missing skills, experiences, or qualifications that are crucial.
         - Irrelevant sections that should be removed.
         - Suggestions for enhancing particular projects or experiences.
+        - job description must include all key details and summarize them into one clear and concise paragraph.
+        job description should include:
+        - Required skills and technologies  
+        - Preferred skills (if mentioned)  
+        - Key responsibilities (in brief)  
+        - Years of experience required  
+        - Salary details (if mentioned)  
+        - Any unique attributes about the company or role 
 
         Return your response strictly in JSON format with the following structure:
         {{
@@ -45,7 +53,7 @@ def generate_resume_feedback(user_resume: str, job_description: str) -> dict:
                 {"role": "system", "content": "You are a resume analysis assistant. Return your response in strict JSON format."},
                 {"role": "user", "content": resume_feedback_prompt}
             ],
-            max_tokens=1000,
+            max_tokens=750,
             temperature=0.5,
             response_format={"type": "json_object"}
         )

@@ -47,7 +47,7 @@ def generate_interview_questions(user_resume: str, job_description: str, questio
                 {"role": "system", "content": "You are an expert interview question generator. Return your response in strict JSON format."},
                 {"role": "user", "content": interview_prompt}
             ],
-            max_tokens=1500,
+            max_tokens=1250,
             temperature=0.5,
             response_format={"type": "json_object"}  # Structured JSON output
         )

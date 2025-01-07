@@ -44,7 +44,7 @@ def generate_cover_letter(user_resume: str, job_description: str) -> dict:
                 {"role": "system", "content": "You are an expert cover letter writer. Return your response in strict JSON format."},
                 {"role": "user", "content": cover_letter_prompt}
             ],
-            max_tokens=1000,
+            max_tokens=750,
             temperature=0.5,
             response_format={"type": "json_object"}  # Structured JSON output
         )
