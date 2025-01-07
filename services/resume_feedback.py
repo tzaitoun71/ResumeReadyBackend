@@ -37,6 +37,7 @@ def generate_resume_feedback(user_resume: str, job_description: str) -> dict:
           "location": "Location Here",
           "jobDescription": "Brief summary of the job description",
           "resumeFeedback": "Detailed and actionable feedback"
+          "resumeScore": Score from 0-100%
         }}
 
         **Resume**:
