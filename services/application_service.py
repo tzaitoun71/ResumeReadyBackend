@@ -17,8 +17,10 @@ def process_application(user_resume: str, job_description: str, question_type: s
         }
 
         results = {}
+        errors = {}
+
+        # Run tasks concurrently with a ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=3) as executor:
-            # Submit tasks to the thread pool
             futures = {executor.submit(func, *args): key for key, (func, args) in tasks.items()}
 
             for future in as_completed(futures):
@@ -26,12 +28,13 @@ def process_application(user_resume: str, job_description: str, question_type: s
                 try:
                     results[key] = future.result()
                 except Exception as e:
+                    errors[key] = str(e)
+                    print(f"Error in task '{key}': {e}")
                     results[key] = {"error": str(e)}
-                    print(f"Error in task {key}: {e}")
 
         # Build the application object
         application = {
-            "id": str(uuid4()),  # Generate a unique ID for the application
+            "id": str(uuid4()),  # Generate a unique application ID
             "companyName": results.get("resumeFeedback", {}).get("companyName", "Not specified"),
             "position": results.get("resumeFeedback", {}).get("position", "Not specified"),
             "location": results.get("resumeFeedback", {}).get("location", "Not specified"),
@@ -39,7 +42,8 @@ def process_application(user_resume: str, job_description: str, question_type: s
             "resumeFeedback": results.get("resumeFeedback", {}),
             "coverLetter": results.get("coverLetter", {}),
             "interviewQuestions": results.get("interviewQuestions", []),
-            "status": "Application Submitted",
+            "status": "Application Submitted" if not errors else "Partial Failure",
+            "errors": errors if errors else None,
             "dateCreated": datetime.utcnow().isoformat()
         }
 
@@ -47,4 +51,4 @@ def process_application(user_resume: str, job_description: str, question_type: s
 
     except Exception as e:
         print(f"Error processing application: {e}")
-        return {"error": str(e)}
+        return {"error": str(e), "status": "Failure", "dateCreated": datetime.utcnow().isoformat()}

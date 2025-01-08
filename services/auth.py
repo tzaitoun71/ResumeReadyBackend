@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 import requests
 from config.database import user_collections
+from models.user_model import User
 
 # Load Environment Variables
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
@@ -38,19 +39,33 @@ def fetch_user_info(access_token: str):
         print(f"Error fetching user info: {e}")
         return None
 
-def save_user_to_db(user_info: dict):
+def save_user_to_db(user_info: dict) -> bool:
     try:
-        user_data = {
-            "_id": user_info.get("sub"),
-            "email": user_info.get("email"),
-            "first_name": user_info.get("given_name", ""),
-            "last_name": user_info.get("family_name", ""),
-            "created_at": datetime.utcnow()
-        }
-        user_collections.update_one(
-            {"_id": user_data["_id"]},
-            {"$setOnInsert": user_data},
-            upsert=True
+        user_id = user_info.get("sub")
+        email = user_info.get("email")
+        first_name = user_info.get("given_name", "")
+        last_name = user_info.get("family_name", "")
+        
+        # Check if the user already exists
+        existing_user = user_collections.find_one({"userId": user_id})
+        if existing_user:
+            print("User already exists in the database.")
+            return True  # Return early if user exists
+
+        # Create a new user object
+        new_user = User(
+            userId=user_id,
+            email=email,
+            firstName=first_name,
+            lastName=last_name,
+            resume="",
+            applications=[]
         )
+        
+        # Save the user to MongoDB
+        result = user_collections.insert_one(new_user.to_dict())
+        return result.acknowledged
+
     except Exception as e:
-        print(f"Error saving user to MongoDB: {e}")
+        print(f"Error saving user to DB: {e}")
+        return False
