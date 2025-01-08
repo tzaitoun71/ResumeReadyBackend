@@ -77,7 +77,10 @@ def process_application_endpoint():
         success = add_application_to_user(user_id, application_data)
 
         if success:
-            return jsonify({"message": "Application processed and saved successfully"}), 200
+            return jsonify({
+                "message": "Application processed and saved successfully",
+                "application": application_data.to_dict()
+                }), 200
         else:
             return jsonify({"error": "Failed to save the application to the user document"}), 500
 
