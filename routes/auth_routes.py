@@ -51,7 +51,17 @@ def callback():
             "id_token": tokens.get("id_token")
         }
 
-        return jsonify({"message": "User logged in successfully"}), 200
+        return jsonify({
+            "message": "Login successful",
+            "accessToken": tokens.get("access_token"),
+            "idToken": tokens.get("id_token"),
+            "user": {
+                "sub": user_info.get("sub"),
+                "email": user_info.get("email"),
+                "firstName": user_info.get("given_name", ""),
+                "lastName": user_info.get("family_name", "")
+            }
+        }), 200
 
     except Exception as e:
         print(f"Error in /callback: {e}")
@@ -73,15 +83,3 @@ def logout():
 def protected():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
-
-# Temporary Token Route
-@auth_bp.route('/tokens', methods=['GET'])
-def get_tokens():
-    if 'user' not in session:
-        return jsonify({"error": "User not logged in"}), 401
-
-    tokens = session.get('tokens')
-    return jsonify({
-        "access_token": tokens.get("access_token"),
-        "id_token": tokens.get("id_token")
-    })
