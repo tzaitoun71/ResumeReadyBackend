@@ -32,25 +32,21 @@ def login():
 @auth_bp.route('/callback')
 def callback():
     try:
+        # Fetches the authorization code from the request and checks if it exists
         code = request.args.get('code')
         if not code:
             return jsonify({"error": "Authorization code not provided"}), 400
 
+        # the authorization code is put into a function that extracts the access token and the id token from it
         tokens = exchange_code_for_tokens(code)
+
+        # Fetching the logged in user's info from the access token
         user_info = fetch_user_info(tokens["access_token"])
+
+        # Saving it to the DB
         save_user_to_db(user_info)
 
-        session['user'] = {
-            "sub": user_info.get("sub"),
-            "email": user_info.get("email"),
-            "first_name": user_info.get("given_name", ""),
-            "last_name": user_info.get("family_name", "")
-        }
-        session['tokens'] = {
-            "access_token": tokens.get("access_token"),
-            "id_token": tokens.get("id_token")
-        }
-
+        # Returning the user's info and tokens in the response body
         return jsonify({
             "message": "Login successful",
             "accessToken": tokens.get("access_token"),
@@ -76,10 +72,3 @@ def logout():
         f'?client_id={AUTH0_CLIENT_ID}'
         f'&returnTo={AUTH0_CALLBACK_URL}'
     )
-
-# Protected Route
-@auth_bp.route('/protected', methods=['GET'])
-@jwt_required()
-def protected():
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
