@@ -1,0 +1,88 @@
+openapi: 3.0.0
+info:
+  title: ResumeReady API
+  description: API documentation for the ResumeReady backend.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+paths:
+  /auth/login:
+    get:
+      summary: Login using Auth0
+      responses:
+        200:
+          description: Redirects to the Auth0 login page.
+  /auth/callback:
+    get:
+      summary: Callback from Auth0 after login.
+      responses:
+        200:
+          description: Successfully logged in.
+  /user/upload-pdf:
+    post:
+      summary: Upload a resume as a PDF.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: Resume uploaded successfully.
+        400:
+          description: Invalid file type or missing file.
+  /application/process-application:
+    post:
+      summary: Process the user's resume and job description.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userResume:
+                  type: string
+                jobDescription:
+                  type: string
+                questionType:
+                  type: string
+                  default: Technical
+                numQuestions:
+                  type: integer
+                  default: 3
+      responses:
+        200:
+          description: Application processed successfully.
+        400:
+          description: Missing required fields.
+  /application/summarize-job:
+    post:
+      summary: Summarize job description.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jobDescription:
+                  type: string
+      responses:
+        200:
+          description: Job description summarized successfully.
+        400:
+          description: Missing required fields.
+  /auth/tokens:
+    get:
+      summary: Retrieve Auth0 tokens from the session.
+      responses:
+        200:
+          description: Tokens retrieved successfully.
+        401:
+          description: User not logged in.
