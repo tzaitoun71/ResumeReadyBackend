@@ -21,21 +21,26 @@ def create_user(user_data: User):
         return None
 
 # Update the user's resume.
+from datetime import datetime
+
+# Update the user's resume in the database
 def update_user_resume(user_id: str, resume_text: str) -> bool:
     try:
+        # Update the user document in MongoDB
         result = user_collections.update_one(
-            {"userId": user_id},
+            {"userId": user_id},  # Match the user by userId
             {
                 "$set": {
-                    "resume": resume_text,
-                    "updatedAt": datetime.utcnow()
+                    "resume": resume_text,  # Update the resumeText field
+                    "updatedAt": datetime.utcnow()  # Optionally update the timestamp
                 }
             }
         )
-        return result.modified_count > 0
+        return result.modified_count > 0  # Return True if a document was updated
     except Exception as e:
-        print(f"Error updating resume: {e}")
+        print(f"Error updating user resume: {e}")
         return False
+
 
 # Add an application to a user's applications array
 def add_application_to_user(user_id: str, application_data: Application) -> bool:

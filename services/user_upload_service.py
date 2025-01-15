@@ -1,6 +1,7 @@
 import os
 from werkzeug.utils import secure_filename
-from services.s3_service import upload_file_to_s3
+from services.pdf_parser import extract_text_from_pdf
+from services.s3_service import download_file_from_s3, upload_file_to_s3
 from services.user import update_user_resume
 
 MAX_FILE_SIZE_KB = 400  # File size limit
@@ -25,19 +26,35 @@ def handle_file_upload(user_id: str, file) -> dict:
         file_path = os.path.join(temp_folder, secure_filename(file.filename))
         file.save(file_path)
 
-        # Upload to S3
-        file_url = upload_file_to_s3(file_path, user_id)
+        # Upload the original file to S3
+        s3_url = upload_file_to_s3(file_path, user_id)
 
-        # Update the database with the file URL
-        update_result = update_user_resume(user_id, file_url)
+        # Extract text from the PDF
+        resume_text = extract_text_from_pdf(file_path)
+
+        # Update the database with the parsed text
+        update_result = update_user_resume(user_id, resume_text)
         if not update_result:
             return {"error": "Failed to update user resume"}
 
         # Clean up the temp file
         os.remove(file_path)
 
-        return {"resumeUrl": file_url}
+        return {"resumeUrl": s3_url}
 
     except Exception as e:
         print(f"Error in handle_file_upload: {e}")
+        return {"error": str(e)}
+
+    
+def fetch_pdf_from_s3(user_id: str, destination_path: str) -> str:
+    """
+    Fetches a PDF file from S3 based on the user_id.
+    """
+    try:
+        s3_key = f"resumes/{user_id}-resume.pdf"
+        download_file_from_s3(s3_key, destination_path)
+        return destination_path
+    except Exception as e:
+        print(f"Error fetching PDF from S3: {e}")
         return {"error": str(e)}

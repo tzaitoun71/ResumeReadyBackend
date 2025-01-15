@@ -15,10 +15,10 @@ s3_client = boto3.client(
 
 def upload_file_to_s3(file_path: str, user_id: str) -> str:
     try:
-        # Construct the S3 key with the folder path
+        # Construct the S3 key directly under the "resumes" folder
         s3_key = f"resumes/{user_id}-resume.pdf"
 
-        # Upload the file to S3 within the 'resumes/' folder
+        # Upload the file to S3
         s3_client.upload_file(file_path, AWS_S3_BUCKET, s3_key)
 
         # Return the file's public URL
@@ -28,4 +28,14 @@ def upload_file_to_s3(file_path: str, user_id: str) -> str:
         raise e
     except Exception as e:
         print(f"Error uploading to S3: {e}")
+        raise e
+
+def download_file_from_s3(s3_key: str, download_path: str):
+    try:
+        s3_client.download_file(AWS_S3_BUCKET, s3_key, download_path)
+    except NoCredentialsError as e:
+        print(f"Credentials not available: {e}")
+        raise e
+    except Exception as e:
+        print(f"Error downloading file from S3: {e}")
         raise e
