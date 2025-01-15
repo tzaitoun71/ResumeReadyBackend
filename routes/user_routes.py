@@ -1,14 +1,8 @@
-import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from services.user import update_user_resume
-from services.s3_service import upload_file_to_s3
+from services.user_upload_service import handle_file_upload
 
 user_bp = Blueprint('user', __name__)
-
-# Define a local upload folder
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure the folder exists
 
 @user_bp.route('/upload-pdf', methods=['POST'])
 @jwt_required()
@@ -22,29 +16,13 @@ def upload_pdf():
         if not file:
             return jsonify({"error": "No file provided"}), 400
 
-        if not file.filename.endswith('.pdf'):
-            return jsonify({"error": "Only PDF files are allowed"}), 400
-
-        # Save the file temporarily
-        temp_folder = "/tmp"
-        os.makedirs(temp_folder, exist_ok=True)  # Ensure the /tmp folder exists
-        file_path = os.path.join(temp_folder, file.filename)
-        file.save(file_path)
-
-        # Upload to S3
-        file_url = upload_file_to_s3(file_path, user_sub)
-
-        # Update the database with the file URL
-        update_result = update_user_resume(user_sub, file_url)
-        if not update_result:
-            return jsonify({"error": "Failed to update user resume"}), 500
-
-        # Clean up the temp file
-        os.remove(file_path)
+        result = handle_file_upload(user_sub, file)
+        if result.get("error"):
+            return jsonify({"error": result["error"]}), 400
 
         return jsonify({
             "message": "Resume uploaded successfully.",
-            "resumeUrl": file_url
+            "resumeUrl": result["resumeUrl"]
         }), 200
 
     except Exception as e:

@@ -1,15 +1,17 @@
 import os
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from flask_swagger_ui import get_swaggerui_blueprint
 from dotenv import load_dotenv
 from jwt import PyJWKClient
+from flask_cors import CORS
 
 # Load Environment Variables
 load_dotenv()
 
 # Initialize Flask App
 app = Flask(__name__)
+
+CORS(app)
 
 # App Configuration
 app.secret_key = os.getenv('FLASK_SECRET_KEY')
@@ -48,20 +50,6 @@ from routes.application_routes import application_bp
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(user_bp, url_prefix='/user')
 app.register_blueprint(application_bp, url_prefix='/application')
-
-# Swagger UI Setup
-SWAGGER_URL = '/docs'  
-SWAGGER_FILE = '/static/swagger.yaml'  
-
-swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,  
-    SWAGGER_FILE,  
-    config={
-        'app_name': "ResumeReady API" 
-    }
-)
-
-app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 # Start Flask Server
 if __name__ == '__main__':
