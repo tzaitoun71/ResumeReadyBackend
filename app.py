@@ -1,9 +1,11 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from jwt import PyJWKClient
 from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
+from flask_swagger import swagger
 
 # Load Environment Variables
 load_dotenv()
@@ -34,7 +36,6 @@ try:
         os.getenv('AUTH0_SAMPLE_TOKEN')
     ).key
     app.config['JWT_PUBLIC_KEY'] = signing_key
-    print("JWT Public Key Configured Successfully")
 except Exception as e:
     print(f"Failed to configure JWT: {e}")
     exit(1)
@@ -50,6 +51,36 @@ from routes.application_routes import application_bp
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(user_bp, url_prefix='/user')
 app.register_blueprint(application_bp, url_prefix='/application')
+
+# Swagger UI Setup
+SWAGGER_URL = '/docs'  # URL for exposing Swagger UI
+API_URL = '/spec'  # URL for the Swagger JSON
+
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI endpoint
+    API_URL,  # Swagger JSON URL
+    config={'app_name': "Resume Ready API"}  # App name in Swagger UI
+)
+
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
+# Swagger JSON Endpoint
+@app.route('/spec')
+def spec():
+    from flask_swagger import swagger
+    spec = swagger(app)
+    spec['info']['title'] = "Resume Ready API"
+    spec['info']['description'] = "API for Resume Ready application"
+    spec['info']['version'] = "1.0"
+    spec['securityDefinitions'] = {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Enter 'Bearer <your_access_token>'"
+        }
+    }
+    return jsonify(spec)
 
 # Start Flask Server
 if __name__ == '__main__':

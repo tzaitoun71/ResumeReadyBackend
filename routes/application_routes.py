@@ -12,6 +12,37 @@ application_bp = Blueprint('application', __name__)
 # Resume Feedback Route
 @application_bp.route('/resume-feedback', methods=['POST'])
 def resume_feedback():
+    """
+    Generates resume feedback based on the user's resume and the job description.
+    ---
+    tags:
+      - Application
+    summary: Generate resume feedback
+    description: Generates feedback on the user's resume to match the job description.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            userResume:
+              type: string
+              description: The content of the user's resume.
+            jobDescription:
+              type: string
+              description: The job description.
+    responses:
+      200:
+        description: Resume feedback generated successfully.
+        schema:
+          type: object
+          properties:
+            feedback:
+              type: object
+      400:
+        description: Invalid input data.
+    """
     data = request.json
     user_resume = data.get('userResume')
     job_description = data.get('jobDescription')
@@ -22,6 +53,37 @@ def resume_feedback():
 # Cover Letter Route
 @application_bp.route('/generate-cover-letter', methods=['POST'])
 def cover_letter():
+    """
+    Generates a cover letter based on the user's resume and the job description.
+    ---
+    tags:
+      - Application
+    summary: Generate cover letter
+    description: Generates a tailored cover letter for the user.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            userResume:
+              type: string
+              description: The content of the user's resume.
+            jobDescription:
+              type: string
+              description: The job description.
+    responses:
+      200:
+        description: Cover letter generated successfully.
+        schema:
+          type: object
+          properties:
+            cover_letter:
+              type: string
+      400:
+        description: Invalid input data.
+    """
     data = request.json
     user_resume = data.get('userResume')
     job_description = data.get('jobDescription')
@@ -32,6 +94,39 @@ def cover_letter():
 # Interview Questions Route
 @application_bp.route('/generate-interview-questions', methods=['POST'])
 def interview_questions():
+    """
+    Generates interview questions based on the user's resume and the job description.
+    ---
+    tags:
+      - Application
+    summary: Generate interview questions
+    description: Generates interview questions relevant to the user's resume and the job description.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            userResume:
+              type: string
+              description: The content of the user's resume.
+            jobDescription:
+              type: string
+              description: The job description.
+    responses:
+      200:
+        description: Interview questions generated successfully.
+        schema:
+          type: object
+          properties:
+            questions:
+              type: array
+              items:
+                type: string
+      400:
+        description: Invalid input data.
+    """
     data = request.json
     user_resume = data.get('userResume')
     job_description = data.get('jobDescription')
@@ -43,12 +138,48 @@ def interview_questions():
 @application_bp.route('/process-application', methods=['POST'])
 @jwt_required()
 def process_application_endpoint():
+    """
+    Processes the application by generating feedback, a cover letter, and interview questions.
+    ---
+    tags:
+      - Application
+    summary: Process application
+    description: Processes the user's application and generates feedback, a cover letter, and interview questions.
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            userResume:
+              type: string
+              description: The content of the user's resume.
+            jobDescription:
+              type: string
+              description: The job description.
+    responses:
+      200:
+        description: Application processed successfully.
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            application:
+              type: object
+      401:
+        description: Unauthorized access.
+      500:
+        description: Internal server error.
+    """
     try:
         user_id = get_jwt_identity()
         if not user_id:
             return jsonify({"error": "Unauthorized access"}), 401
-        
-        # Parse request JSON
+
         data = request.get_json()
         user_resume = data.get('userResume')
         job_description = data.get('jobDescription')
@@ -58,7 +189,6 @@ def process_application_endpoint():
         if not user_resume or not job_description:
             return jsonify({"error": "Missing required fields: 'userResume', 'jobDescription'"}), 400
 
-        # Process the application
         application_result = process_application(
             user_resume=user_resume,
             job_description=job_description,
@@ -69,7 +199,6 @@ def process_application_endpoint():
         if 'error' in application_result:
             return jsonify({"error": "Failed to process application", "details": application_result['error']}), 500
 
-        # Add the application to the user's document in MongoDB
         application_data = Application(
             companyName=application_result.get("companyName", "Not specified"),
             position=application_result.get("position", "Not specified"),
@@ -87,7 +216,7 @@ def process_application_endpoint():
             return jsonify({
                 "message": "Application processed and saved successfully",
                 "application": application_data.to_dict()
-                }), 200
+            }), 200
         else:
             return jsonify({"error": "Failed to save the application to the user document"}), 500
 
