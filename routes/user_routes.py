@@ -1,6 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from services.user_upload_service import fetch_pdf_from_s3, handle_file_upload
+from services.s3_service import fetch_file_from_s3
+from services.user_upload_service import handle_file_upload
+import tempfile
 
 user_bp = Blueprint('user', __name__)
 
@@ -61,44 +63,45 @@ def upload_pdf():
         print(f"Error in upload_pdf: {e}")
         return jsonify({"error": str(e)}), 500
 
-@user_bp.route('/fetch-pdf', methods=['GET'])
+@user_bp.route('/fetch-pdf/<user_id>', methods=['GET'])
 @jwt_required()
-def fetch_pdf():
+def fetch_pdf(user_id):
     """
-    Fetch the uploaded PDF from S3.
+    Fetch the uploaded PDF from S3 using the user ID and return it as a downloadable file.
     ---
     tags:
       - User
-    summary: Fetch PDF
-    description: Retrieves the PDF file for the user's resume from S3.
+    summary: Fetch PDF by User ID
+    description: Retrieves the PDF file for the user's resume from S3 using their user ID.
     parameters:
-      - name: Authorization
-        in: header
+      - name: user_id
+        in: path
         required: true
         type: string
-        description: Access token.
+        description: User ID to fetch the PDF.
     responses:
       200:
         description: PDF fetched successfully.
         schema:
           type: string
-          example: "PDF downloaded to /path/to/local/file.pdf"
       400:
         description: Failed to fetch the PDF file.
+      401:
+        description: Unauthorized access.
+      500:
+        description: Internal server error.
+    security:
+      - BearerAuth: []
     """
     try:
-        user_id = get_jwt_identity()
-        if not user_id:
-            return jsonify({"error": "Unauthorized"}), 401
-
-        temp_path = f"/tmp/{user_id}-resume.pdf"
-        fetch_result = fetch_pdf_from_s3(user_id, temp_path)
-
-        if isinstance(fetch_result, dict) and "error" in fetch_result:
-            return jsonify(fetch_result), 400
-
-        return jsonify({"message": f"PDF downloaded to {temp_path}"}), 200
-
+        # Fetch file from S3
+        pdf_file = fetch_file_from_s3(user_id)
+        return send_file(
+            pdf_file,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"{user_id}-resume.pdf",
+        )
     except Exception as e:
         print(f"Error in fetch_pdf: {e}")
         return jsonify({"error": str(e)}), 500
