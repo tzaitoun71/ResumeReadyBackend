@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.s3_service import fetch_file_from_s3
 from services.user_upload_service import handle_file_upload
-import tempfile
 
 user_bp = Blueprint('user', __name__)
 

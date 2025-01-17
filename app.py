@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from jwt import PyJWKClient
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
-from flask_swagger import swagger
 
 # Load Environment Variables
 load_dotenv()
@@ -44,9 +43,9 @@ except Exception as e:
 jwt = JWTManager(app)
 
 # Register Blueprints
-from routes.auth_routes import auth_bp
-from routes.user_routes import user_bp
-from routes.application_routes import application_bp
+from controllers.auth_routes import auth_bp
+from controllers.user_routes import user_bp
+from controllers.application_routes import application_bp
 
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(user_bp, url_prefix='/user')

@@ -1,7 +1,6 @@
 import boto3
 import os
 import io
-from botocore.exceptions import NoCredentialsError
 
 # Load environment variables
 AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET")

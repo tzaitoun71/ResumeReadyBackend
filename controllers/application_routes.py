@@ -5,12 +5,12 @@ from services.application_service import process_application
 from services.resume_feedback import generate_resume_feedback
 from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
-from services.user import add_application_to_user
-from services.db_service import (
+from repositories.application_repository import (
     get_applications_by_user,
     get_application_by_id,
     get_cover_letter_by_app_id,
-    get_interview_questions_by_app_id
+    get_interview_questions_by_app_id,
+    save_application
 )
 
 application_bp = Blueprint('application', __name__)
@@ -153,24 +153,13 @@ def process_application_endpoint():
         if not user_resume or not job_description:
             return jsonify({"error": "Missing required fields"}), 400
 
-        application_result = process_application(user_resume, job_description)
+        application_result = process_application(user_id, user_resume, job_description)
         if 'error' in application_result:
             return jsonify({"error": "Failed to process application"}), 500
 
-        application_data = Application(
-            companyName=application_result.get("companyName", "Not specified"),
-            position=application_result.get("position", "Not specified"),
-            location=application_result.get("location", "Not specified"),
-            jobDescription=application_result.get("jobDescription", "Not specified"),
-            resumeFeedback=application_result.get("resumeFeedback", {}),
-            coverLetter=application_result.get("coverLetter", {}),
-            interviewQuestions=application_result.get("interviewQuestions", []),
-            status="Application Submitted"
-        )
-
-        success = add_application_to_user(user_id, application_data)
+        success = save_application(user_id, application_result)
         if success:
-            return jsonify({"message": "Application processed", "application": application_data.to_dict()}), 200
+            return jsonify({"message": "Application processed", "application": application_result}), 200
         else:
             return jsonify({"error": "Failed to save the application"}), 500
 
@@ -204,8 +193,7 @@ def get_applications(user_id):
 
     if applications:
         return jsonify({"applications": applications}), 200
-    return jsonify({"error": "No applications found"}), 404  # Ensure correct return type
-
+    return jsonify({"error": "No applications found"}), 404
 
 @application_bp.route('/<user_id>/application/<application_id>', methods=['GET'])
 @jwt_required()
@@ -233,15 +221,11 @@ def get_application(user_id, application_id):
       404:
         description: Application not found.
     """
-    try:
-        application = get_application_by_id(user_id, application_id)
-    except Exception as e:
-        return jsonify({"error": f"Invalid application ID format: {str(e)}"}), 400
+    application = get_application_by_id(user_id, application_id)
 
     if application:
         return jsonify(application), 200
     return jsonify({"error": "Application not found"}), 404
-
 
 @application_bp.route('/<user_id>/application/<application_id>/cover-letter', methods=['GET'])
 @jwt_required()
@@ -269,15 +253,11 @@ def get_cover_letter(user_id, application_id):
       404:
         description: Cover letter not found.
     """
-    try:
-        cover_letter = get_cover_letter_by_app_id(user_id, application_id)
-    except Exception as e:
-        return jsonify({"error": f"Invalid application ID format: {str(e)}"}), 400
+    cover_letter = get_cover_letter_by_app_id(user_id, application_id)
 
     if cover_letter:
         return jsonify(cover_letter), 200
     return jsonify({"error": "Cover letter not found"}), 404
-
 
 @application_bp.route('/<user_id>/application/<application_id>/interview-questions', methods=['GET'])
 @jwt_required()
@@ -305,10 +285,7 @@ def get_interview_questions(user_id, application_id):
       404:
         description: No interview questions found.
     """
-    try:
-        questions = get_interview_questions_by_app_id(user_id, application_id)
-    except Exception as e:
-        return jsonify({"error": f"Invalid application ID format: {str(e)}"}), 400
+    questions = get_interview_questions_by_app_id(user_id, application_id)
 
     if questions:
         return jsonify(questions), 200
