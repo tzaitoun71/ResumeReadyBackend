@@ -6,6 +6,12 @@ from services.resume_feedback import generate_resume_feedback
 from services.cover_letter import generate_cover_letter
 from services.interview_questions import generate_interview_questions
 from services.user import add_application_to_user
+from services.db_service import (
+    get_applications_by_user,
+    get_application_by_id,
+    get_cover_letter_by_app_id,
+    get_interview_questions_by_app_id
+)
 
 application_bp = Blueprint('application', __name__)
 
@@ -223,3 +229,114 @@ def process_application_endpoint():
     except Exception as e:
         print(f"Error in /process-application: {e}")
         return jsonify({"error": str(e)}), 500
+
+@application_bp.route('/user/<user_id>/applications', methods=['GET'])
+@jwt_required()
+def get_applications(user_id):
+    """
+    Retrieves all applications for a given user.
+    ---
+    tags:
+      - Applications
+    summary: Get all applications for a user
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        type: string
+        description: The ID of the user.
+    responses:
+      200:
+        description: A list of applications.
+      404:
+        description: No applications found.
+    security:
+      - BearerAuth: []
+    """
+    applications = get_applications_by_user(user_id)
+    
+    if applications:
+        return jsonify({"applications": applications}), 200
+    else:
+        return jsonify({"error": "No applications found"}), 404  # Fix: Ensure this is a proper tuple
+
+# Get details of a specific application
+@application_bp.route('/application/<application_id>', methods=['GET'])
+@jwt_required()
+def get_application(application_id):
+    """
+    Retrieves details of a specific application.
+    ---
+    tags:
+      - Applications
+    summary: Get application details
+    parameters:
+      - name: application_id
+        in: path
+        required: true
+        type: string
+        description: The ID of the application.
+    responses:
+      200:
+        description: Application details retrieved successfully.
+      404:
+        description: Application not found.
+    security:
+      - BearerAuth: []
+    """
+    application = get_application_by_id(application_id)
+    return jsonify(application) if application else jsonify({"error": "Application not found"}), 404
+
+# Get the cover letter for a specific application
+@application_bp.route('/application/<application_id>/cover-letter', methods=['GET'])
+@jwt_required()
+def get_cover_letter(application_id):
+    """
+    Retrieves the cover letter for a given application.
+    ---
+    tags:
+      - Cover Letters
+    summary: Get cover letter by application ID
+    parameters:
+      - name: application_id
+        in: path
+        required: true
+        type: string
+        description: The ID of the application.
+    responses:
+      200:
+        description: Cover letter retrieved successfully.
+      404:
+        description: Cover letter not found.
+    security:
+      - BearerAuth: []
+    """
+    cover_letter = get_cover_letter_by_app_id(application_id)
+    return jsonify(cover_letter) if cover_letter else jsonify({"error": "Cover letter not found"}), 404
+
+# Get interview questions for a specific application
+@application_bp.route('/application/<application_id>/interview-questions', methods=['GET'])
+@jwt_required()
+def get_interview_questions(application_id):
+    """
+    Retrieves interview questions for a given application.
+    ---
+    tags:
+      - Interview Questions
+    summary: Get interview questions by application ID
+    parameters:
+      - name: application_id
+        in: path
+        required: true
+        type: string
+        description: The ID of the application.
+    responses:
+      200:
+        description: Interview questions retrieved successfully.
+      404:
+        description: No interview questions found.
+    security:
+      - BearerAuth: []
+    """
+    questions = get_interview_questions_by_app_id(application_id)
+    return jsonify(questions) if questions else jsonify({"error": "No interview questions found"}), 404
