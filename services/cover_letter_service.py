@@ -45,9 +45,6 @@ def generate_cover_letter(user_resume: str, job_description: str) -> dict:
 
         """
 
-
-
-        # Call OpenAI API with structured JSON output
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -61,12 +58,8 @@ def generate_cover_letter(user_resume: str, job_description: str) -> dict:
 
         # Extract and parse the response content
         response_content = completion.choices[0].message.content.strip()
-        # print("Raw JSON Response from OpenAI:")
-        # print(response_content)
 
         parsed_response = json.loads(response_content)
-        # print("Parsed JSON Response:")
-        # print(parsed_response)
 
         return parsed_response
 

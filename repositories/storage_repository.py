@@ -17,8 +17,13 @@ s3_client = boto3.client(
 # Uploads a file to the S3 bucket.
 def upload_file_to_s3(file_path: str, user_id: str) -> str:
     try:
+        # Define the S3 file path
         s3_key = f"resumes/{user_id}-resume.pdf"
+
+        # Upload file to S3
         s3_client.upload_file(file_path, AWS_S3_BUCKET, s3_key)
+
+        # Generate the file's public URL
         return f"https://{AWS_S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com/{s3_key}"
     except Exception as e:
         print(f"Error uploading to S3: {e}")
@@ -28,8 +33,12 @@ def upload_file_to_s3(file_path: str, user_id: str) -> str:
 def fetch_file_from_s3(user_id: str) -> io.BytesIO:
     try:
         s3_key = f"resumes/{user_id}-resume.pdf"
+
+        # Fetch file
         s3_response = s3_client.get_object(Bucket=AWS_S3_BUCKET, Key=s3_key)
         pdf_content = s3_response["Body"].read()
+
+        # Convert bytes into a file-like object
         return io.BytesIO(pdf_content)
     except Exception as e:
         print(f"Error fetching file from S3: {e}")

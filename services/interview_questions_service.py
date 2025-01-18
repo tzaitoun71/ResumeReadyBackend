@@ -40,7 +40,6 @@ def generate_interview_questions(user_resume: str, job_description: str, questio
         Only return valid JSON. Do not include extra text, explanations, or commentary.
         """
 
-        # Call OpenAI API with structured JSON output
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -54,12 +53,8 @@ def generate_interview_questions(user_resume: str, job_description: str, questio
 
         # Extract and parse the response content
         response_content = completion.choices[0].message.content.strip()
-        # print("Raw JSON Response from OpenAI:")
-        # print(response_content)
 
         parsed_response = json.loads(response_content)
-        # print("Parsed JSON Response:")
-        # print(parsed_response)
 
         return parsed_response.get("interviewQuestions", [])
 
