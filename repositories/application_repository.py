@@ -16,10 +16,23 @@ def save_application(user_id, application_data):
         print(f"Error saving application: {e}")
         return False
 
-# Get all applications for a user
+# Get all applications for a user, excluding resumeFeedback, coverLetter, and interviewQuestions
 def get_applications_by_user(user_id):
-    user = user_collections.find_one({"userId": user_id}, {"applications": 1})
+    user = user_collections.find_one(
+        {"userId": user_id},
+        {
+            "applications.id": 1,
+            "applications.companyName": 1,
+            "applications.position": 1,
+            "applications.location": 1,
+            "applications.jobDescription": 1,
+            "applications.status": 1,
+            "applications.dateCreated": 1
+        }
+    )
     return user.get("applications", []) if user else []
+
+
 
 # Get application details by application ID
 def get_application_by_id(user_id, app_id):
