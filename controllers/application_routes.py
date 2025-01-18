@@ -1,16 +1,16 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from services.application_service import process_application
+from services.application_service import (
+    process_application,
+    get_user_applications,
+    get_application_details,
+    get_application_cover_letter,
+    get_application_interview_questions,
+    delete_application_by_user_id,
+)
 from services.resume_feedback_service import generate_resume_feedback
 from services.cover_letter_service import generate_cover_letter
 from services.interview_questions_service import generate_interview_questions
-from repositories.application_repository import (
-    get_applications_by_user,
-    get_application_by_id,
-    get_cover_letter_by_app_id,
-    get_interview_questions_by_app_id,
-    save_application
-)
 
 application_bp = Blueprint('application', __name__)
 
@@ -161,7 +161,7 @@ def get_applications(user_id):
       404:
         description: No applications found.
     """
-    applications = get_applications_by_user(user_id)
+    applications = get_user_applications(user_id)
 
     if applications:
         return jsonify({"applications": applications}), 200
@@ -193,7 +193,7 @@ def get_application(user_id, application_id):
       404:
         description: Application not found.
     """
-    application = get_application_by_id(user_id, application_id)
+    application = get_application_details(user_id, application_id)
 
     if application:
         return jsonify(application), 200
@@ -225,7 +225,7 @@ def get_cover_letter(user_id, application_id):
       404:
         description: Cover letter not found.
     """
-    cover_letter = get_cover_letter_by_app_id(user_id, application_id)
+    cover_letter = get_application_cover_letter(user_id, application_id)
 
     if cover_letter:
         return jsonify(cover_letter), 200
@@ -257,8 +257,42 @@ def get_interview_questions(user_id, application_id):
       404:
         description: No interview questions found.
     """
-    questions = get_interview_questions_by_app_id(user_id, application_id)
+    questions = get_application_interview_questions(user_id, application_id)
 
     if questions:
         return jsonify(questions), 200
     return jsonify({"error": "No interview questions found"}), 404
+
+# Delete an application
+@application_bp.route('/<user_id>/application/<application_id>', methods=['DELETE'])
+@jwt_required()
+def delete_application(user_id, application_id):
+    """
+    Deletes a specific application.
+    ---
+    tags:
+      - Application
+    summary: Delete an application
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        type: string
+      - name: application_id
+        in: path
+        required: true
+        type: string
+    responses:
+      200:
+        description: Application deleted successfully.
+      404:
+        description: Application not found.
+      500:
+        description: Internal server error.
+    """
+    success = delete_application_by_user_id(user_id, application_id)
+    if success:
+        return jsonify({"message": "Application deleted successfully"}), 200
+    return jsonify({"error": "Application not found or could not be deleted"}), 404

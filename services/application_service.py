@@ -7,6 +7,7 @@ from services.cover_letter_service import generate_cover_letter
 from services.resume_feedback_service import generate_resume_feedback
 from services.interview_questions_service import generate_interview_questions
 from repositories.application_repository import (
+    delete_application_by_id,
     save_application,
     get_application_by_id,
     get_applications_by_user,
@@ -88,3 +89,6 @@ def get_application_interview_questions(user_id: str, application_id: str):
 
 def save_application_to_user(user_id: str, application_data: Application) -> bool:
     return save_application(user_id, application_data)
+
+def delete_application_by_user_id(user_id: str, application_id: str):
+    return delete_application_by_id(user_id, application_id)

@@ -50,3 +50,15 @@ def get_cover_letter_by_app_id(user_id, app_id):
 def get_interview_questions_by_app_id(user_id, app_id):
     application = get_application_by_id(user_id, app_id)
     return application.get("interviewQuestions") if application else None
+
+# Delete application by id
+def delete_application_by_id(user_id, app_id):
+    try:
+        result = user_collections.update_one(
+            {"userId": user_id},
+            {"$pull": {"applications": {"id": app_id}}}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error deleting application: {e}")
+        return False
