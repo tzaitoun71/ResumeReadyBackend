@@ -1,10 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from models.application_model import Application
 from services.application_service import process_application
-from services.resume_feedback import generate_resume_feedback
-from services.cover_letter import generate_cover_letter
-from services.interview_questions import generate_interview_questions
+from services.resume_feedback_service import generate_resume_feedback
+from services.cover_letter_service import generate_cover_letter
+from services.interview_questions_service import generate_interview_questions
 from repositories.application_repository import (
     get_applications_by_user,
     get_application_by_id,
@@ -116,30 +115,6 @@ def interview_questions():
 def process_application_endpoint():
     """
     Processes the application and generates feedback, a cover letter, and interview questions.
-    ---
-    tags:
-      - Application
-    summary: Process application
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          properties:
-            userResume:
-              type: string
-            jobDescription:
-              type: string
-    responses:
-      200:
-        description: Application processed successfully.
-      401:
-        description: Unauthorized access.
-      500:
-        description: Internal server error.
     """
     try:
         user_id = get_jwt_identity()
@@ -154,14 +129,11 @@ def process_application_endpoint():
             return jsonify({"error": "Missing required fields"}), 400
 
         application_result = process_application(user_id, user_resume, job_description)
+
         if 'error' in application_result:
             return jsonify({"error": "Failed to process application"}), 500
 
-        success = save_application(user_id, application_result)
-        if success:
-            return jsonify({"message": "Application processed", "application": application_result}), 200
-        else:
-            return jsonify({"error": "Failed to save the application"}), 500
+        return jsonify({"message": "Application processed", "application": application_result}), 200
 
     except Exception as e:
         print(f"Error in /process-application: {e}")

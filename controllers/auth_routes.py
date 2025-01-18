@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, redirect, request, jsonify, session
 from dotenv import load_dotenv
-from services.auth import exchange_code_for_tokens, fetch_user_info, save_user_to_db
+from services.auth_service import exchange_code_for_tokens, fetch_user_info, save_user_to_db
 
 load_dotenv()
 

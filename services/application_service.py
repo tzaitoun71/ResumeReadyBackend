@@ -2,9 +2,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from uuid import uuid4
 from datetime import datetime
 from typing import Dict
-from services.cover_letter import generate_cover_letter
-from services.resume_feedback import generate_resume_feedback
-from services.interview_questions import generate_interview_questions
+from models.application_model import Application
+from services.cover_letter_service import generate_cover_letter
+from services.resume_feedback_service import generate_resume_feedback
+from services.interview_questions_service import generate_interview_questions
 from repositories.application_repository import (
     save_application,
     get_application_by_id,
@@ -55,7 +56,7 @@ def process_application(user_id: str, user_resume: str, job_description: str, qu
         }
 
         # Save application to database
-        success = save_application(user_id, application)
+        success = save_application_to_user(user_id, application)
         if not success:
             return {"error": "Failed to save application", "status": "Failure", "dateCreated": datetime.utcnow().isoformat()}
 
@@ -84,3 +85,6 @@ def get_application_cover_letter(user_id: str, application_id: str):
 # Retrieve interview questions for a given application
 def get_application_interview_questions(user_id: str, application_id: str):
     return get_interview_questions_by_app_id(user_id, application_id)
+
+def save_application_to_user(user_id: str, application_data: Application) -> bool:
+    return save_application(user_id, application_data)

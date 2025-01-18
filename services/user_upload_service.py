@@ -1,7 +1,7 @@
 import os
 from werkzeug.utils import secure_filename
-from services.pdf_parser import extract_text_from_pdf
-from services.s3_service import upload_file_to_s3
+from utils.pdf_parser import extract_text_from_pdf
+from services.storage_service import upload_file_to_s3
 from services.user_service import update_user_resume
 
 MAX_FILE_SIZE_KB = 400
