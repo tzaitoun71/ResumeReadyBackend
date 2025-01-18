@@ -6,7 +6,8 @@ from services.application_service import (
     get_application_details,
     get_application_cover_letter,
     get_application_interview_questions,
-    delete_application_by_user_id,
+    delete_application_by_app_id,
+    update_application_status,
 )
 from services.resume_feedback_service import generate_resume_feedback
 from services.cover_letter_service import generate_cover_letter
@@ -115,6 +116,91 @@ def interview_questions():
 def process_application_endpoint():
     """
     Processes the application and generates feedback, a cover letter, and interview questions.
+    ---
+    tags:
+      - Application
+    summary: Process job application
+    description: This endpoint processes a user's job application by analyzing the resume and job description. 
+                 It generates resume feedback, a tailored cover letter, and interview questions.
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            userResume:
+              type: string
+              description: The user's resume text.
+              example: "Experienced software engineer skilled in Python, Flask, and MongoDB."
+            jobDescription:
+              type: string
+              description: The job description text.
+              example: "We are looking for a software engineer proficient in Python and Flask."
+    responses:
+      200:
+        description: Application processed successfully.
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Application processed"
+            application:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                companyName:
+                  type: string
+                  example: "Google"
+                position:
+                  type: string
+                  example: "Software Engineer"
+                location:
+                  type: string
+                  example: "Remote"
+                jobDescription:
+                  type: string
+                  example: "We are hiring a software engineer with experience in Flask and MongoDB."
+                resumeFeedback:
+                  type: object
+                  example: {"strengths": ["Good technical skills"], "improvements": ["Add more project details"]}
+                coverLetter:
+                  type: object
+                  example: {"content": "Dear Hiring Manager, I am excited to apply..."}
+                interviewQuestions:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Tell me about yourself", "Why do you want to work for Google?"]
+      400:
+        description: Missing required fields.
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Missing required fields"
+      401:
+        description: Unauthorized access.
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Unauthorized access"
+      500:
+        description: Internal server error.
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Internal Server Error"
     """
     try:
         user_id = get_jwt_identity()
@@ -138,6 +224,7 @@ def process_application_endpoint():
     except Exception as e:
         print(f"Error in /process-application: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @application_bp.route('/<user_id>/applications', methods=['GET'])
 @jwt_required()
@@ -292,7 +379,58 @@ def delete_application(user_id, application_id):
       500:
         description: Internal server error.
     """
-    success = delete_application_by_user_id(user_id, application_id)
+    success = delete_application_by_app_id(user_id, application_id)
     if success:
         return jsonify({"message": "Application deleted successfully"}), 200
     return jsonify({"error": "Application not found or could not be deleted"}), 404
+
+# Update the status of an application
+@application_bp.route('/<user_id>/application/<application_id>/status', methods=['PATCH'])
+@jwt_required()
+def update_application_status_endpoint(user_id, application_id):
+    """
+    Updates the status of a specific application.
+    ---
+    tags:
+      - Application
+    summary: Update application status
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: user_id
+        in: path
+        required: true
+        type: string
+      - name: application_id
+        in: path
+        required: true
+        type: string
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              description: The new status of the application.
+    responses:
+      200:
+        description: Application status updated successfully.
+      400:
+        description: Missing status field.
+      404:
+        description: Application not found.
+      500:
+        description: Internal server error.
+    """
+    data = request.get_json()
+    new_status = data.get("status")
+
+    if not new_status:
+        return jsonify({"error": "Missing 'status' field"}), 400
+
+    success = update_application_status(user_id, application_id, new_status)
+    if success:
+        return jsonify({"message": "Application status updated successfully"}), 200
+    return jsonify({"error": "Application not found or could not be updated"}), 404

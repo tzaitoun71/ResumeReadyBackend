@@ -12,7 +12,8 @@ from repositories.application_repository import (
     get_application_by_id,
     get_applications_by_user,
     get_cover_letter_by_app_id,
-    get_interview_questions_by_app_id
+    get_interview_questions_by_app_id,
+    update_application_status
 )
 
 # Process a job application
@@ -90,5 +91,8 @@ def get_application_interview_questions(user_id: str, application_id: str):
 def save_application_to_user(user_id: str, application_data: Application) -> bool:
     return save_application(user_id, application_data)
 
-def delete_application_by_user_id(user_id: str, application_id: str):
+def delete_application_by_app_id(user_id: str, application_id: str):
     return delete_application_by_id(user_id, application_id)
+
+def update_application_status_by_app_id(user_id, application_id, new_status):
+    return update_application_status(user_id, application_id, new_status)

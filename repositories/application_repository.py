@@ -62,3 +62,15 @@ def delete_application_by_id(user_id, app_id):
     except Exception as e:
         print(f"Error deleting application: {e}")
         return False
+    
+# Update application status
+def update_application_status(user_id, application_id, new_status):
+    try:
+        result = user_collections.update_one(
+            {"userId": user_id, "applications.id": application_id},
+            {"$set": {"applications.$.status": new_status}}
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        print(f"Error updating application status: {e}")
+        return False
