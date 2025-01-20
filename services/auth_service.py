@@ -10,6 +10,10 @@ AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
 AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
 AUTH0_CALLBACK_URL = os.getenv("AUTH0_CALLBACK_URL")
 
+'''
+This entire code will get changed/removed. I will implement the auth0 logic on the frontend and pass the token in a request to the backend for verification.
+Writing the authentication on the frontend would allow for safer use of the application and also best practice which this project tries to follow to the best of its ability.
+'''
 # Exchange authorization code for tokens
 def exchange_code_for_tokens(code: str):
     try:
