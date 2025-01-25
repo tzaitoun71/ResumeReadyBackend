@@ -1,62 +1,87 @@
-from flask import request, jsonify
-from functools import wraps
-from jose import jwt
-import requests
 import os
+from datetime import datetime
+import requests
+from config.database import user_collections
+from models.user_model import User
 
-# Load environment variables
+# Load Environment Variables
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
-AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
-ALGORITHMS = ["RS256"]
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
+AUTH0_CALLBACK_URL = os.getenv("AUTH0_CALLBACK_URL")
 
-def get_auth0_public_keys():
-    """Fetch Auth0 public keys"""
-    jwks_url = f"https://{AUTH0_DOMAIN}/.well-known/jwks.json"
-    jwks = requests.get(jwks_url).json()
-    return jwks
-
-# Verify JWT token from frontend
-def verify_jwt(token):
+'''
+This entire code will get changed/removed. I will implement the auth0 logic on the frontend and pass the token in a request to the backend for verification.
+Writing the authentication on the frontend would allow for safer use of the application and also best practice which this project tries to follow to the best of its ability.
+'''
+# Exchange authorization code for tokens
+def exchange_code_for_tokens(code: str):
     try:
-        header = jwt.get_unverified_header(token)
-        jwks = get_auth0_public_keys()
-        rsa_key = {}
+        # Auth0 token URL
+        token_url = f'https://{AUTH0_DOMAIN}/oauth/token'
 
-        for key in jwks["keys"]:
-            if key["kid"] == header["kid"]:
-                rsa_key = {
-                    "kty": key["kty"],
-                    "kid": key["kid"],
-                    "use": key["use"],
-                    "n": key["n"],
-                    "e": key["e"],
-                }
-        if not rsa_key:
-            raise Exception("Invalid JWT key")
+        # Payload for the token exchange request
+        payload = {
+            "grant_type": "authorization_code",
+            "client_id": AUTH0_CLIENT_ID,
+            "client_secret": AUTH0_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": AUTH0_CALLBACK_URL
+        }
 
-        payload = jwt.decode(
-            token,
-            rsa_key,
-            algorithms=ALGORITHMS,
-            audience=AUTH0_AUDIENCE,
-            issuer=f"https://{AUTH0_DOMAIN}/",
-        )
-        return payload
+        # Headers for HTTP request
+        headers = {'Content-Type': 'application/json'}
+
+        # Sending POST request to Auth0 for token exchange
+        response = requests.post(token_url, json=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
     except Exception as e:
-        print(f"JWT verification error: {e}")
+        print(f"Error exchanging code for tokens: {e}")
         return None
 
-# Decorator to enforce authentication
-def auth_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
-        if not token:
-            return jsonify({"error": "Missing Authorization Header"}), 401
+# Fetches user info using the access token
+def fetch_user_info(access_token: str):
+    try:
+        userinfo_url = f'https://{AUTH0_DOMAIN}/userinfo'
+        headers = {'Authorization': f'Bearer {access_token}'}
 
-        user = verify_jwt(token)
-        if not user:
-            return jsonify({"error": "Invalid or expired token"}), 401
+        # Using the userinfo url and the bearer authentication token, user data is fetched
+        response = requests.get(userinfo_url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Error fetching user info: {e}")
+        return None
 
-        return f(user, *args, **kwargs)  # Pass user data to route
-    return decorated_function
+# Function to save the user to MongoDB
+def save_user_to_db(user_info: dict) -> bool:
+    try:
+        user_id = user_info.get("sub")
+        email = user_info.get("email")
+        first_name = user_info.get("given_name", "")
+        last_name = user_info.get("family_name", "")
+        
+        # Check if the user already exists
+        existing_user = user_collections.find_one({"userId": user_id})
+        if existing_user:
+            print("User already exists in the database.")
+            return True  # Return early if user exists
+
+        # Create a new user object
+        new_user = User(
+            userId=user_id,
+            email=email,
+            firstName=first_name,
+            lastName=last_name,
+            resume="",
+            applications=[]
+        )
+        
+        # Save the user to MongoDB
+        result = user_collections.insert_one(new_user.to_dict())
+        return result.acknowledged
+
+    except Exception as e:
+        print(f"Error saving user to DB: {e}")
+        return False
