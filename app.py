@@ -49,7 +49,7 @@ app.register_blueprint(user_bp, url_prefix='/user')
 app.register_blueprint(application_bp, url_prefix='/application')
 
 # Swagger UI Setup
-SWAGGER_URL = '/docs'
+SWAGGER_URL = ''
 API_URL = '/spec'
 
 swaggerui_blueprint = get_swaggerui_blueprint(
