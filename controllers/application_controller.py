@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.auth_service import validate_and_create_user
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.application_service import (
     process_application,
     get_user_applications,
@@ -15,20 +15,8 @@ from services.interview_questions_service import generate_interview_questions
 
 application_bp = Blueprint('application', __name__)
 
-# Extracts and validates the JWT token using Auth0.
-def get_authenticated_user():
-    auth_header = request.headers.get("Authorization", None)
-    if not auth_header:
-        return None, jsonify({"error": "Authorization header is missing"}), 401
-
-    token = auth_header.split(" ")[1]  # Expecting 'Bearer <token>'
-    user = validate_and_create_user(token)
-    if not user:
-        return None, jsonify({"error": "Invalid or expired token"}), 401
-
-    return user, None  # Return user info if valid
-
 @application_bp.route('/resume-feedback', methods=['POST'])
+@jwt_required()
 def resume_feedback():
     """
     Generates resume feedback based on the user's resume and the job description.
@@ -36,6 +24,8 @@ def resume_feedback():
     tags:
       - Application
     summary: Generate resume feedback
+    security:
+      - BearerAuth: []
     parameters:
       - in: body
         name: body
@@ -53,9 +43,7 @@ def resume_feedback():
       400:
         description: Invalid input data.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    user_id = get_jwt_identity()
 
     data = request.json
     user_resume = data.get('userResume')
@@ -65,6 +53,7 @@ def resume_feedback():
     return jsonify({"feedback": feedback}), 200
 
 @application_bp.route('/generate-cover-letter', methods=['POST'])
+@jwt_required()
 def cover_letter():
     """
     Generates a cover letter based on the user's resume and job description.
@@ -72,6 +61,8 @@ def cover_letter():
     tags:
       - Application
     summary: Generate cover letter
+    security:
+      - BearerAuth: []
     parameters:
       - in: body
         name: body
@@ -89,9 +80,7 @@ def cover_letter():
       400:
         description: Invalid input data.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    user_id = get_jwt_identity()
 
     data = request.json
     user_resume = data.get('userResume')
@@ -101,6 +90,7 @@ def cover_letter():
     return jsonify({"cover_letter": cover_letter}), 200
 
 @application_bp.route('/generate-interview-questions', methods=['POST'])
+@jwt_required()
 def interview_questions():
     """
     Generates interview questions based on the user's resume and job description.
@@ -108,6 +98,8 @@ def interview_questions():
     tags:
       - Application
     summary: Generate interview questions
+    security:
+      - BearerAuth: []
     parameters:
       - in: body
         name: body
@@ -125,9 +117,7 @@ def interview_questions():
       400:
         description: Invalid input data.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    user_id = get_jwt_identity()
 
     data = request.json
     user_resume = data.get('userResume')
@@ -137,6 +127,7 @@ def interview_questions():
     return jsonify({"questions": questions}), 200
 
 @application_bp.route('/process-application', methods=['POST'])
+@jwt_required()  # Secures this endpoint
 def process_application_endpoint():
     """
     Processes the application and generates feedback, a cover letter, and interview questions.
@@ -226,9 +217,7 @@ def process_application_endpoint():
               type: string
               example: "Internal Server Error"
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    user_id = get_jwt_identity()
 
     try:
         data = request.get_json()
@@ -238,7 +227,7 @@ def process_application_endpoint():
         if not user_resume or not job_description:
             return jsonify({"error": "Missing required fields"}), 400
 
-        application_result = process_application(user["userId"], user_resume, job_description)
+        application_result = process_application(user_id, user_resume, job_description)
 
         if 'error' in application_result:
             return jsonify({"error": "Failed to process application"}), 500
@@ -246,10 +235,10 @@ def process_application_endpoint():
         return jsonify({"message": "Application processed", "application": application_result}), 200
 
     except Exception as e:
-        print(f"Error in /process-application: {e}")
         return jsonify({"error": str(e)}), 500
 
 @application_bp.route('/<user_id>/applications', methods=['GET'])
+@jwt_required()  # Secures this endpoint
 def get_applications(user_id):
     """
     Retrieves all applications for a user.
@@ -270,11 +259,9 @@ def get_applications(user_id):
       404:
         description: No applications found.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    current_user_id = get_jwt_identity()
 
-    if user["userId"] != user_id:
+    if current_user_id != user_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     applications = get_user_applications(user_id)
@@ -284,6 +271,7 @@ def get_applications(user_id):
     return jsonify({"error": "No applications found"}), 404
 
 @application_bp.route('/<user_id>/application/<application_id>', methods=['GET'])
+@jwt_required()  # Secures this endpoint
 def get_application(user_id, application_id):
     """
     Retrieves details of a specific application.
@@ -308,11 +296,9 @@ def get_application(user_id, application_id):
       404:
         description: Application not found.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    current_user_id = get_jwt_identity()
 
-    if user["userId"] != user_id:
+    if current_user_id != user_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     application = get_application_details(user_id, application_id)
@@ -322,6 +308,7 @@ def get_application(user_id, application_id):
     return jsonify({"error": "Application not found"}), 404
 
 @application_bp.route('/<user_id>/application/<application_id>/cover-letter', methods=['GET'])
+@jwt_required()  # Secures this endpoint
 def get_cover_letter(user_id, application_id):
     """
     Retrieves the cover letter for a given application.
@@ -346,11 +333,9 @@ def get_cover_letter(user_id, application_id):
       404:
         description: Cover letter not found.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    current_user_id = get_jwt_identity()
 
-    if user["userId"] != user_id:
+    if current_user_id != user_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     cover_letter = get_application_cover_letter(user_id, application_id)
@@ -360,6 +345,7 @@ def get_cover_letter(user_id, application_id):
     return jsonify({"error": "Cover letter not found"}), 404
 
 @application_bp.route('/<user_id>/application/<application_id>/interview-questions', methods=['GET'])
+@jwt_required()  # Secures this endpoint
 def get_interview_questions(user_id, application_id):
     """
     Retrieves interview questions for a given application.
@@ -384,11 +370,9 @@ def get_interview_questions(user_id, application_id):
       404:
         description: No interview questions found.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    current_user_id = get_jwt_identity()
 
-    if user["userId"] != user_id:
+    if current_user_id != user_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     questions = get_application_interview_questions(user_id, application_id)
@@ -399,6 +383,7 @@ def get_interview_questions(user_id, application_id):
 
 # Delete an application
 @application_bp.route('/<user_id>/application/<application_id>', methods=['DELETE'])
+@jwt_required()  # Secures this endpoint
 def delete_application(user_id, application_id):
     """
     Deletes a specific application.
@@ -425,11 +410,9 @@ def delete_application(user_id, application_id):
       500:
         description: Internal server error.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    current_user_id = get_jwt_identity()
 
-    if user["userId"] != user_id:
+    if current_user_id != user_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     success = delete_application_by_app_id(user_id, application_id)
@@ -437,9 +420,9 @@ def delete_application(user_id, application_id):
         return jsonify({"message": "Application deleted successfully"}), 200
     return jsonify({"error": "Application not found or could not be deleted"}), 404
 
-
 # Update the status of an application
 @application_bp.route('/<user_id>/application/<application_id>/status', methods=['PATCH'])
+@jwt_required()  # Secures this endpoint
 def update_application_status_endpoint(user_id, application_id):
     """
     Updates the status of a specific application.
@@ -477,11 +460,9 @@ def update_application_status_endpoint(user_id, application_id):
       500:
         description: Internal server error.
     """
-    user, error_response = get_authenticated_user()
-    if error_response:
-        return error_response
+    current_user_id = get_jwt_identity()
 
-    if user["userId"] != user_id:
+    if current_user_id != user_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     data = request.get_json()
